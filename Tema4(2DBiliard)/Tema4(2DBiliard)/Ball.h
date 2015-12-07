@@ -32,6 +32,7 @@ public:
 
 	bool collidesWith(Ball & ball);
 	void ComputeCollisionPhysics(Ball & ball);
+	void ComputeSurfaceCollisionPhysics(glm::vec3 normal);
 
 	void SetPosition(glm::vec3 _position);
 	glm::vec3 GetPosition() const;

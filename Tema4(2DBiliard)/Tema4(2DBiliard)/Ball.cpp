@@ -70,12 +70,11 @@ void Ball::Draw()
 
 void Ball::Update()
 {
-	SetPosition(glm::vec3(position.x + 0.1f * velocity.x, position.y + 0.1f * velocity.y, 0.0f));
+	SetPosition(glm::vec3(position.x + 0.5f * velocity.x, position.y + 0.5f * velocity.y, 0.0f));
 }
 
 void Ball::CreateVBO()
 {
-	
 	// se creeaza un buffer nou se seteaza ca buffer curent si punctele sunt "copiate" in bufferul curent
 	glGenBuffers(1, &VboId);
 	glBindBuffer(GL_ARRAY_BUFFER, VboId);
@@ -140,4 +139,14 @@ void Ball::ComputeCollisionPhysics(Ball & ball)
 
 	velocity = glm::normalize(v1p);
 	ball.velocity = glm::normalize(v2p);
+}
+
+void Ball::ComputeSurfaceCollisionPhysics(glm::vec3 normal)
+{
+	//normal = -normal;
+	//glm::vec3 d = normal * radius;
+	//glm::vec3 nd = glm::normalize(d);
+	//float k = glm::dot(velocity - normal, d);
+	//glm::vec3 v1p = velocity - k * nd;
+	velocity = glm::vec3(velocity.x * normal.x, velocity.y * normal.y, 0.0f);
 }

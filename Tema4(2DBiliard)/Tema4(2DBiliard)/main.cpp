@@ -143,6 +143,11 @@ void InitScene()
 		blackholes.push_back(Ball(20.0f, 20, glm::vec3((i/3) * 600.0f - 300.0f, (i%3 - 1) * 400.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
 	}
 
+	for (int i = 0; i < 15; ++i)
+	{
+		balls.push_back(Ball(20.0f, 20, glm::vec3(rand() % 600 - 300, rand() % 800 - 400, 0.0f)));
+	}
+
 	points = new float[8];
 	colors = new float[8];
 
@@ -420,21 +425,92 @@ void update()
 	points[0] = whiteBall.position.x;
 	points[1] = whiteBall.position.y;
 
-
 	whiteBall.Update();
-	testBall.Update();
+	//testBall.Update();
+	for (auto & ball : balls)
+	{
+		ball.Update();
+	}
+
+	for (size_t b1 = 0; b1 < balls.size(); ++b1)
+	{
+		for (size_t b2 = b1 + 1; b2 < balls.size(); ++b2)
+		if (b1 != b2)
+		{
+			if (balls[b1].collidesWith(balls[b2]))
+				balls[b1].ComputeCollisionPhysics(balls[b2]);
+		}
+	}
+
+	for (auto & ball : balls)
+	{
+		if (ball.collidesWith(whiteBall))
+			ball.ComputeCollisionPhysics(whiteBall);
+	}
+
 	//
 	//whiteBall.SetPosition(glm::vec3(whiteBall.position.x + 0.1f * whiteBall.velocity.x, whiteBall.position.y += 0.1f * whiteBall.velocity.y, 0.0f));
 	
 	//cout << whiteBall.position.x << ' ' << whiteBall.position.y << '\n';
-
+	/*
 	if (whiteBall.collidesWith(testBall))
 	{
 		whiteBall.ComputeCollisionPhysics(testBall);
 		++nrColission;
 		cout << "collides " << nrColission << "!!!\n";
+	}*/
+
+	if (whiteBall.position.x - whiteBall.radius <= -ORTHO_X / 2)
+	{
+		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec3(-1.0f, 1.0f, 0.0f));
+		//cout << "achtung!!111";
 	}
-	
+	else
+	if (whiteBall.position.y - whiteBall.radius <= -ORTHO_Y / 2)
+	{
+		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec3(1.0f, -1.0f, 0.0f));
+		//cout << "achtung!!222";
+	}
+	else
+	if (whiteBall.position.x + whiteBall.radius >= ORTHO_X / 2)
+	{
+		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec3(-1.0f, 1.0f, 0.0f));
+		//cout << "achtung!!333";
+	}
+	else
+	if (whiteBall.position.y + whiteBall.radius >= ORTHO_Y / 2)
+	{
+		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec3(1.0f, -1.0f, 0.0f));
+		//cout << "achtung!!444";
+	}
+
+	for (auto & ball : balls)
+	{
+		if (ball.position.x - ball.radius <= -ORTHO_X / 2)
+		{
+			ball.ComputeSurfaceCollisionPhysics(glm::vec3(-1.0f, 1.0f, 0.0f));
+			//cout << "achtung!!111";
+		}
+		else
+		if (ball.position.y - ball.radius <= -ORTHO_Y / 2)
+		{
+			ball.ComputeSurfaceCollisionPhysics(glm::vec3(1.0f, -1.0f, 0.0f));
+			//cout << "achtung!!222";
+		}
+		else
+		if (ball.position.x + ball.radius >= ORTHO_X / 2)
+		{
+			ball.ComputeSurfaceCollisionPhysics(glm::vec3(-1.0f, 1.0f, 0.0f));
+			//cout << "achtung!!333";
+		}
+		else
+		if (ball.position.y + ball.radius >= ORTHO_Y / 2)
+		{
+			ball.ComputeSurfaceCollisionPhysics(glm::vec3(1.0f, -1.0f, 0.0f));
+			//cout << "achtung!!444";
+		}
+	}
+
 	glutPostRedisplay();
 }
 
