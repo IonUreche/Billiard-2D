@@ -70,7 +70,7 @@ void Ball::Draw()
 
 void Ball::Update()
 {
-	SetPosition(glm::vec3(position.x + velocity.x, position.y + velocity.y, 0.0f));
+	SetPosition(glm::vec3(position.x + 0.1f * velocity.x, position.y + 0.1f * velocity.y, 0.0f));
 }
 
 void Ball::CreateVBO()
@@ -119,4 +119,25 @@ void Ball::SetPosition(glm::vec3 _position)
 glm::vec3 Ball::GetPosition() const
 {
 	return position;
+}
+
+bool Ball::collidesWith(Ball & ball)
+{
+	return glm::distance(position, ball.GetPosition()) <= radius + ball.radius;
+}
+
+void Ball::ComputeCollisionPhysics(Ball & ball)
+{
+	glm::vec3 d = position - ball.position;
+	glm::vec3 nd = glm::normalize(d);
+	float k = glm::dot(velocity - ball.velocity, d);
+	glm::vec3 v1p = velocity - k * nd;
+
+	d = ball.position - position;
+	nd = glm::normalize(d);
+	k = glm::dot(ball.velocity - velocity, d);
+	glm::vec3 v2p = ball.velocity - k * nd;
+
+	velocity = glm::normalize(v1p);
+	ball.velocity = glm::normalize(v2p);
 }

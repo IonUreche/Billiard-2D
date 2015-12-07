@@ -42,9 +42,9 @@ vector< float > inputPoints;
 
 int fixedPointIndex = -1;
 float RotAngle = 0.0f;
-
-
 float *points, *colors;
+
+int nrColission = 0;
 
 glm::mat4 transfMatrix;
 
@@ -428,6 +428,13 @@ void update()
 	
 	//cout << whiteBall.position.x << ' ' << whiteBall.position.y << '\n';
 
+	if (whiteBall.collidesWith(testBall))
+	{
+		whiteBall.ComputeCollisionPhysics(testBall);
+		++nrColission;
+		cout << "collides " << nrColission << "!!!\n";
+	}
+	
 	glutPostRedisplay();
 }
 
