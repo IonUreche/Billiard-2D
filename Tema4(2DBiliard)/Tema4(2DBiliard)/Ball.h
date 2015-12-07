@@ -18,6 +18,8 @@ public:
 
 	float *points;
 	float *colors;
+	float *relativePoints;
+
 	int bufferByteSize;
 
 	//std::vector< glm::vec2 > triangles; // triangle fan structure is here
@@ -25,7 +27,11 @@ public:
 	Ball(float _radius = 10, int _nrTriangles = 20, glm::vec3 _pos = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 _color = glm::vec3(1.0f, 1.0f, 1.0f));
 	~Ball();
 
-	void draw();
+	void Update();
+	void Draw();
+
+	void SetPosition(glm::vec3 _position);
+	glm::vec3 GetPosition() const;
 
 private:
 
@@ -36,6 +42,8 @@ private:
 		VertexShaderId,
 		FragmentShaderId,
 		ProgramId;
+
+	void UpdatePoints();
 	
 	void BuildCircle();
 	void SetPointPos(float *arr, float x, float y, float z = 0.0f, float d = 1.0f);

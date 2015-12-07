@@ -31,6 +31,9 @@ const double ORTHO_Y = 800;
 const double eps = 1e-7;
 
 vector< Ball > balls;
+vector< Ball > blackholes;
+Ball whiteBall;
+Ball testBall;
 
 float lastMouseX, lastMouseY;
 
@@ -39,6 +42,9 @@ vector< float > inputPoints;
 
 int fixedPointIndex = -1;
 float RotAngle = 0.0f;
+
+
+float *points, *colors;
 
 glm::mat4 transfMatrix;
 
@@ -125,13 +131,34 @@ void DestroyShaders(void)
 
 	glDeleteProgram(ProgramId);
 }
-/*
+
+void InitScene()
+{
+	whiteBall = Ball(10.0f, 20, glm::vec3(0.0f, -200.0f, 0.0f));
+
+	testBall = Ball(10.0f, 20, glm::vec3(0.0f, 200.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+
+	for (int i = 0; i < 6; ++i)
+	{
+		blackholes.push_back(Ball(20.0f, 20, glm::vec3((i/3) * 600.0f - 300.0f, (i%3 - 1) * 400.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
+	}
+
+	points = new float[8];
+	colors = new float[8];
+
+	points[2] = points[6] = 0.0f;
+	points[3] = points[7] = 1.0f;
+
+	colors[0] = colors[1] = colors[3] = colors[4] = colors[5] = colors[7] = 1.0f;
+	colors[2] = colors[6] = 0.0f;
+}
+
 void CreateVBO(void)
 {
 	// se creeaza un buffer nou se seteaza ca buffer curent si punctele sunt "copiate" in bufferul curent
 	glGenBuffers(1, &VboId);
 	glBindBuffer(GL_ARRAY_BUFFER, VboId);
-	glBufferData(GL_ARRAY_BUFFER, 16 * (5), points, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 16 * 2, points, GL_STATIC_DRAW);
 
 	// se creeaza / se leaga un VAO (Vertex Array Object) - util cand se utilizeaza mai multe VBO
 	glGenVertexArrays(1, &VaoId);
@@ -143,13 +170,13 @@ void CreateVBO(void)
 	// un nou buffer, pentru culoare
 	glGenBuffers(1, &ColorBufferId);
 	glBindBuffer(GL_ARRAY_BUFFER, ColorBufferId);
-	glBufferData(GL_ARRAY_BUFFER, 16 * (5), colors, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 16 * 2, colors, GL_STATIC_DRAW);
 	// atributul 1 =  culoare
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
-*/
+
 bool Initialize(void)
 {
 	if (glewInit() != GLEW_OK)
@@ -174,6 +201,8 @@ bool Initialize(void)
 	}
 
 	glClearColor(0.1328125f, 0.54296875f, 0.1328125f, 0.0f); // culoarea de fond a ecranului
+
+	InitScene();
 	return true;
 }
 
@@ -185,6 +214,24 @@ void Cleanup(void)
 
 void MousePassiveMotionFunction(int x, int y)
 {
+	
+	float x_coord, y_coord;
+
+	float xp = (float)x / (float)(WINDOW_WIDTH);
+	float yp = (float)(WINDOW_HEIGHT - y) / (float)(WINDOW_HEIGHT);
+
+	x_coord = xp * ORTHO_X - ORTHO_X / 2;
+	y_coord = yp * ORTHO_Y - ORTHO_Y / 2;
+
+	// cout << x_coord << ' ' << y_coord << '\n';
+
+	points[0] = whiteBall.position.x;
+	points[1] = whiteBall.position.y;
+
+	points[4] = x_coord;
+	points[5] = y_coord;
+
+	
 	/*
 	lastMouseX = (float)x / (float)(2 * ORTHO_X);
 	lastMouseY = (float)(WINDOW_HEIGHT - y) / (float)(2 * ORTHO_X);
@@ -216,6 +263,7 @@ void MousePassiveMotionFunction(int x, int y)
 	glutPostRedisplay();
 	}
 	*/
+	glutPostRedisplay();
 }
 
 void MouseFunction(int button, int state, int x, int y)
@@ -228,7 +276,7 @@ void MouseFunction(int button, int state, int x, int y)
 	x_coord = xp * ORTHO_X - ORTHO_X / 2;
 	y_coord = yp * ORTHO_Y - ORTHO_Y / 2;
 
-	cout << x_coord << ' ' << y_coord << '\n';
+	//cout << x_coord << ' ' << y_coord << '\n';
 
 	//x_coord = (2.0f * x / (float)(WINDOW_WIDTH)) - 1.0f;
 	//y_coord = (2.0f * y / (float)(WINDOW_HEIGHT)) - 1.0f;
@@ -237,8 +285,15 @@ void MouseFunction(int button, int state, int x, int y)
 	{
 		if (state == GLUT_DOWN)
 		{
-			balls.push_back(Ball(10, 10, glm::vec3(x_coord, y_coord, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f)));
-			glutPostRedisplay();
+			//balls.push_back(Ball(10, 10, glm::vec3(x_coord, y_coord, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f)));
+			glm::vec2 vel = glm::vec2(points[4] - points[0], points[5] - points[1]);
+			vel = glm::normalize(vel);
+
+			whiteBall.velocity = glm::vec3(vel.x, vel.y, 0.0f);
+
+			//cout << vel.x << vel.y << '\n';
+			
+			//glutPostRedisplay();
 
 			/*
 			glm::mat4 rotMatrix = glm::rotate(glm::mat4(1.0f), RotAngle, glm::vec3(0.0, 0.0, 1.0));
@@ -313,8 +368,7 @@ void KeyboardFunction(unsigned char key, int x, int y)
 void desen(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT);
-	//CreateVBO();
-
+	
 	glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.0 / ORTHO_X, 2.0 / ORTHO_Y, 0));
 	transfMatrix = scaleMatrix;
 	GLint loc = glGetUniformLocation(ProgramId, "matTransform");
@@ -323,14 +377,23 @@ void desen(void)
 		glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(transfMatrix));
 	}
 
-	for (auto &x : balls)
+	whiteBall.Draw();
+	testBall.Draw();
+
+	for (auto &ball : blackholes)
 	{
-		x.draw();
+		ball.Draw();
 	}
 
-	/*
-	glDrawArrays(GL_POINTS, 0, 1);
+	for (auto &ball : balls)
+	{
+		ball.Draw();
+	}
 
+	CreateVBO();
+	glDrawArrays(GL_LINES, 0, 2);
+
+	/*
 	scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.0 / ORTHO_X, 2.0 / ORTHO_Y, 0));
 	glm::mat4 rotMatrix = glm::rotate(glm::mat4(1.0f), RotAngle, glm::vec3(0.0, 0.0, 1.0));
 	glm::mat4 translMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-CenterX, -CenterY, 0.0f));
@@ -352,6 +415,22 @@ void desen(void)
 	
 }
 
+void update()
+{
+	points[0] = whiteBall.position.x;
+	points[1] = whiteBall.position.y;
+
+
+	whiteBall.Update();
+	testBall.Update();
+	//
+	//whiteBall.SetPosition(glm::vec3(whiteBall.position.x + 0.1f * whiteBall.velocity.x, whiteBall.position.y += 0.1f * whiteBall.velocity.y, 0.0f));
+	
+	//cout << whiteBall.position.x << ' ' << whiteBall.position.y << '\n';
+
+	glutPostRedisplay();
+}
+
 void main(int argc, char** argv)
 {
 	glutInit(&argc, argv);
@@ -366,11 +445,12 @@ void main(int argc, char** argv)
 
 	glClear(GL_COLOR_BUFFER_BIT);
 	glutMouseFunc(MouseFunction);
-	glutMotionFunc(MousePassiveMotionFunction);
+	//glutMotionFunc(MousePassiveMotionFunction);
 
 	glutKeyboardFunc(KeyboardFunction);
-	//glutPassiveMotionFunc(MousePassiveMotionFunction);
+	glutPassiveMotionFunc(MousePassiveMotionFunction);
 	glutDisplayFunc(desen);
+	glutIdleFunc(update);
 	glutMainLoop();
 
 	getchar();

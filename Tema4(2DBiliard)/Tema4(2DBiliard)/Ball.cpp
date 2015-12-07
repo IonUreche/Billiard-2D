@@ -31,29 +31,46 @@ void Ball::BuildCircle()
 	bufferByteSize = 16 * nr;
 	points = new float[bufferByteSize];
 	colors = new float[bufferByteSize];
+	relativePoints = new float[bufferByteSize];
 
 	const float PI = 3.14159265f;
 	float division = (2.0f * PI) / (float)nrTriangles;
 
 	//triangles.push_back(glm::vec2(position.x, position.y));
 
-	SetPointPos(points, position.x, position.y);
+	SetPointPos(relativePoints, 0.0f, 0.0f);
 	SetPointPos(colors, color.x, color.y, color.z);
 
 	for (int i = 0; i < nrTriangles; ++i)
 	{
 		//triangles.push_back(glm::vec2(position.x + cos(i * division), position.y + sin(i * division)));
-		SetPointPos(points + (i + 1) * 4, position.x + radius * cos(i * division), position.y + radius * sin(i * division));
+		SetPointPos(relativePoints + (i + 1) * 4, radius * cos(i * division), radius * sin(i * division));
 		SetPointPos(colors + (i + 1) * 4, color.x, color.y, color.z);
 	}
-	SetPointPos(points + (nrTriangles + 1) * 4, position.x + radius * cos(0.0f), position.y + radius * sin(0.0f));
+	SetPointPos(relativePoints + (nrTriangles + 1) * 4, radius * cos(0.0f), radius * sin(0.0f));
 	SetPointPos(colors + (nrTriangles + 1) * 4, color.x, color.y, color.z);
+
+	UpdatePoints();
 }
 
-void Ball::draw()
+void Ball::UpdatePoints()
+{
+	SetPointPos(points, position.x, position.y);
+	for (int i = 0; i <= nrTriangles; ++i)
+	{
+		SetPointPos(points + (i + 1) * 4, position.x + relativePoints[(i + 1) * 4], position.y + relativePoints[(i + 1) * 4 + 1]);
+	}
+}
+
+void Ball::Draw()
 {
 	CreateVBO();
 	glDrawArrays(GL_TRIANGLE_FAN, 0, nrTriangles + 2);
+}
+
+void Ball::Update()
+{
+	SetPosition(glm::vec3(position.x + velocity.x, position.y + velocity.y, 0.0f));
 }
 
 void Ball::CreateVBO()
@@ -91,4 +108,15 @@ void Ball::DestroyVBO()
 
 	glBindVertexArray(0);
 	glDeleteVertexArrays(1, &VaoId);
+}
+
+void Ball::SetPosition(glm::vec3 _position)
+{
+	position = _position;
+	UpdatePoints();
+}
+
+glm::vec3 Ball::GetPosition() const
+{
+	return position;
 }
