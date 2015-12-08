@@ -46,15 +46,13 @@ int fixedPointIndex = -1;
 float RotAngle = 0.0f;
 float *points, *colors;
 
-int currTime, timebase;
+int currTime, timebase, lastRenderTime;
 
 int nrColission = 0, updCounter = 0;
 
 glm::mat4 transfMatrix;
 
 float CenterX = 0.0f, CenterY = 0.0f;
-
-bool currentFrameWasRendered = false;
 
 GLuint
 VaoId,
@@ -186,7 +184,7 @@ void InitScene()
 		int nriter = (i + 8) / 2;
 		for (int j = -4 + nriter; j <= 4 - nriter; j += 2)
 		{
-			balls.push_back(Ball(10.0f, 20, glm::vec2(startX + j * 1.3f * r, startY - i * 1.3f * r), ballsColors[k++]));
+			balls.push_back(Ball(10.0f, 20, glm::vec2(startX + j * 1.2f * r, startY - i * 1.2f * r), ballsColors[k++]));
 		}
 	}
 	/*
@@ -203,7 +201,7 @@ void InitScene()
 	colors[0] = colors[1] = colors[3] = colors[4] = 1.0f;
 	colors[2] = colors[5] = 0.0f;
 
-	currTime = timebase = glutGet(GLUT_ELAPSED_TIME);
+	currTime = timebase = lastRenderTime = glutGet(GLUT_ELAPSED_TIME);
 }
 
 void CreateVBO(void)
@@ -338,12 +336,11 @@ void MouseFunction(int button, int state, int x, int y)
 		{
 			//balls.push_back(Ball(10, 10, glm::vec3(x_coord, y_coord, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f)));
 			glm::vec2 vel = glm::vec2(points[2] - points[0], points[3] - points[1]);
-			float distFact = glm::length(vel) / 200.0f;
+			float fact = glm::length(vel) / 200.0f;
 			vel = glm::normalize(vel);
 
-
-			whiteBall.velocity = distFact * glm::vec2(vel.x, vel.y);
-			whiteBall.velocityEnergyInPercents = 1.0f;
+			whiteBall.velocity = glm::vec2(vel.x, vel.y);
+			whiteBall.velocityEnergyInPercents = glm::min(fact, 1.0f);
 			//cout << vel.x << vel.y << '\n';
 			
 			//glutPostRedisplay();
@@ -421,7 +418,7 @@ void KeyboardFunction(unsigned char key, int x, int y)
 void desen(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT);
-	
+
 	glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.0 / ORTHO_X, 2.0 / ORTHO_Y, 0));
 	transfMatrix = scaleMatrix;
 	GLint loc = glGetUniformLocation(ProgramId, "matTransform");
@@ -445,7 +442,8 @@ void desen(void)
 
 	CreateVBO();
 	glDrawArrays(GL_LINES, 0, 2);
-	currentFrameWasRendered = true;
+
+	lastRenderTime = glutGet(GLUT_ELAPSED_TIME);
 	/*
 	scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.0 / ORTHO_X, 2.0 / ORTHO_Y, 0));
 	glm::mat4 rotMatrix = glm::rotate(glm::mat4(1.0f), RotAngle, glm::vec3(0.0, 0.0, 1.0));
@@ -471,7 +469,8 @@ void update()
 {
 	currTime = glutGet(GLUT_ELAPSED_TIME);
 	int deltatime = currTime - timebase;
-	if (deltatime < 17) // 60 fps
+
+	if (deltatime < 1)
 	{
 		return;
 	}
@@ -490,90 +489,68 @@ void update()
 		if (b1 != b2)
 		{
 			if (balls[b1].collidesWith(balls[b2]))
+			{
 				balls[b1].ComputeCollisionPhysics(balls[b2]);
+				balls[b1].Update(deltatime);
+				balls[b2].Update(deltatime);
+			}
+				
 		}
 	}
 
 	for (auto & ball : balls)
 	{
 		if (ball.collidesWith(whiteBall))
+		{
 			ball.ComputeCollisionPhysics(whiteBall);
+			ball.Update(deltatime);
+			whiteBall.Update(deltatime);
+		}
 	}
 
-	//
-	//whiteBall.SetPosition(glm::vec3(whiteBall.position.x + 0.1f * whiteBall.velocity.x, whiteBall.position.y += 0.1f * whiteBall.velocity.y));
-	
-	//cout << whiteBall.position.x << ' ' << whiteBall.position.y << '\n';
-	/*
-	if (whiteBall.collidesWith(testBall))
-	{
-		whiteBall.ComputeCollisionPhysics(testBall);
-		++nrColission;
-		cout << "collides " << nrColission << "!!!\n";
-	}
-	*/
-	if (whiteBall.position.x - whiteBall.radius <= -ORTHO_X / 2)
+	if (whiteBall.position.x - whiteBall.radius <= -ORTHO_X / 2 || 
+		whiteBall.position.x + whiteBall.radius >= ORTHO_X / 2)
 	{
 		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec2(-1.0f, 1.0f));
-		//cout << "achtung!!111";
+		whiteBall.Update(deltatime);
 	}
 	else
-	if (whiteBall.position.y - whiteBall.radius <= -ORTHO_Y / 2)
+	if (whiteBall.position.y - whiteBall.radius <= -ORTHO_Y / 2 ||
+		whiteBall.position.y + whiteBall.radius >= ORTHO_Y / 2)
 	{
 		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec2(1.0f, -1.0f));
-		//cout << "achtung!!222";
-	}
-	else
-	if (whiteBall.position.x + whiteBall.radius >= ORTHO_X / 2)
-	{
-		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec2(-1.0f, 1.0f));
-		//cout << "achtung!!333";
-	}
-	else
-	if (whiteBall.position.y + whiteBall.radius >= ORTHO_Y / 2)
-	{
-		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec2(1.0f, -1.0f));
-		//cout << "achtung!!444";
+		whiteBall.Update(deltatime);
 	}
 
 	for (auto & ball : balls)
 	{
-		if (ball.position.x - ball.radius <= -ORTHO_X / 2)
+		if (ball.position.x - ball.radius <= -ORTHO_X / 2 ||
+			ball.position.x + ball.radius >= ORTHO_X / 2)
 		{
 			ball.ComputeSurfaceCollisionPhysics(glm::vec2(-1.0f, 1.0f));
-			//cout << "achtung!!111";
+			ball.Update(deltatime);
 		}
 		else
-		if (ball.position.y - ball.radius <= -ORTHO_Y / 2)
+		if (ball.position.y - ball.radius <= -ORTHO_Y / 2 ||
+			ball.position.y + ball.radius >= ORTHO_Y / 2)
 		{
 			ball.ComputeSurfaceCollisionPhysics(glm::vec2(1.0f, -1.0f));
-			//cout << "achtung!!222";
-		}
-		else
-		if (ball.position.x + ball.radius >= ORTHO_X / 2)
-		{
-			ball.ComputeSurfaceCollisionPhysics(glm::vec2(-1.0f, 1.0f));
-			//cout << "achtung!!333";
-		}
-		else
-		if (ball.position.y + ball.radius >= ORTHO_Y / 2)
-		{
-			ball.ComputeSurfaceCollisionPhysics(glm::vec2(1.0f, -1.0f));
-			//cout << "achtung!!444";
+			ball.Update(deltatime);
 		}
 	}
 	
 	whiteBall.Update(deltatime);
-	//testBall.Update();
+	
 	for (auto & ball : balls)
 	{
 		ball.Update(deltatime);
 	}
 
-	if (! currentFrameWasRendered) 
+	if (currTime - lastRenderTime >= 17) // 60 fps
+	{
 		glutPostRedisplay();
-
-	currentFrameWasRendered = false;
+		lastRenderTime = currTime;
+	}
 }
 
 void reshapeFunc(int w, int h)

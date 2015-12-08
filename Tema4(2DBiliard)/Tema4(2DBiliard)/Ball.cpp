@@ -74,8 +74,13 @@ void Ball::Draw()
 
 void Ball::Update(int deltaTime)
 {
-	SetPosition(glm::vec2(position.x + deltaTime * 0.3f * velocityEnergyInPercents * velocity.x, position.y + deltaTime * 0.3f * velocityEnergyInPercents * velocity.y));
-	velocityEnergyInPercents = std::max(velocityEnergyInPercents - 0.001f, 0.0f);
+	SetPosition(glm::vec2(position.x + deltaTime * 0.35f * velocityEnergyInPercents * velocity.x, position.y + deltaTime * 0.35f * velocityEnergyInPercents * velocity.y));
+	//float x = (rand() % 10) * 0.0001f;
+	velocityEnergyInPercents = std::max(velocityEnergyInPercents - 0.0001f * deltaTime, 0.0f);
+	if (velocityEnergyInPercents <= 1e-7)
+	{
+		velocity.x = velocity.y = 0;
+	}
 }
 
 void Ball::CreateVBO()
@@ -146,11 +151,15 @@ void Ball::ComputeCollisionPhysics(Ball & ball)
 	ball.velocity = glm::normalize(v2p);
 
 	// lose some energy
-	float maxEnergy = std::max(velocityEnergyInPercents, ball.velocityEnergyInPercents);
-	maxEnergy = std::max(maxEnergy - 0.01f, 0.0f);
+	//float maxEnergy = std::max(velocityEnergyInPercents, ball.velocityEnergyInPercents);
+	//maxEnergy = std::max(maxEnergy - 0.01f, 0.0f);
 	
-	velocityEnergyInPercents = maxEnergy;
-	ball.velocityEnergyInPercents = maxEnergy;
+	velocityEnergyInPercents = ball.velocityEnergyInPercents * 0.47f + velocityEnergyInPercents * 0.47f;
+	//velocityEnergyInPercents = std::max(velocityEnergyInPercents - 0.01f, 0.0f);
+
+
+	ball.velocityEnergyInPercents = ball.velocityEnergyInPercents * 0.47f + velocityEnergyInPercents * 0.47f;
+	//ball.velocityEnergyInPercents = std::max(ball.velocityEnergyInPercents - 0.01f, 0.0f);
 }
 
 void Ball::ComputeSurfaceCollisionPhysics(glm::vec2 normal)
@@ -161,5 +170,5 @@ void Ball::ComputeSurfaceCollisionPhysics(glm::vec2 normal)
 	//float k = glm::dot(velocity - normal, d);
 	//glm::vec3 v1p = velocity - k * nd;
 	velocity = glm::vec2(velocity.x * normal.x, velocity.y * normal.y);
-	velocityEnergyInPercents = std::max(velocityEnergyInPercents - 0.01f, 0.0f);
+	velocityEnergyInPercents = std::max(velocityEnergyInPercents - 0.03f, 0.0f);
 }
