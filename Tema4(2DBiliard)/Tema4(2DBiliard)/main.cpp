@@ -22,8 +22,8 @@ using namespace std;
 
 // pool table color RGB = (34, 139, 34), (0.1328125,  054296875, 0.1328125)
 
-#define WINDOW_WIDTH 600
-#define WINDOW_HEIGHT 800
+int WINDOW_WIDTH = 600;
+int WINDOW_HEIGHT = 800;
 
 const double ORTHO_X = 600;
 const double ORTHO_Y = 800;
@@ -35,6 +35,8 @@ vector< Ball > blackholes;
 Ball whiteBall;
 Ball testBall;
 
+vector< glm::vec3 > ballsColors;
+
 float lastMouseX, lastMouseY;
 
 bool inputState = true, leftButtonIsDown = false;
@@ -44,11 +46,15 @@ int fixedPointIndex = -1;
 float RotAngle = 0.0f;
 float *points, *colors;
 
-int nrColission = 0;
+int currTime, timebase;
+
+int nrColission = 0, updCounter = 0;
 
 glm::mat4 transfMatrix;
 
 float CenterX = 0.0f, CenterY = 0.0f;
+
+bool currentFrameWasRendered = false;
 
 GLuint
 VaoId,
@@ -134,28 +140,70 @@ void DestroyShaders(void)
 
 void InitScene()
 {
-	whiteBall = Ball(10.0f, 20, glm::vec3(0.0f, -200.0f, 0.0f));
+	whiteBall = Ball(10.0f, 20, glm::vec2(0.0f, -200.0f));
 
-	testBall = Ball(10.0f, 20, glm::vec3(0.0f, 200.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
+	//testBall = Ball(10.0f, 20, glm::vec2(0.0f, 200.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
 	for (int i = 0; i < 6; ++i)
 	{
-		blackholes.push_back(Ball(20.0f, 20, glm::vec3((i/3) * 600.0f - 300.0f, (i%3 - 1) * 400.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
+		blackholes.push_back(Ball(30.0f, 20, glm::vec2((i/3) * 600.0f - 300.0f, (i%3 - 1) * 400.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
+	}
+	//1
+	ballsColors.push_back(glm::vec3(255, 204, 42));
+	ballsColors.push_back(glm::vec3(0, 86, 171));
+	ballsColors.push_back(glm::vec3(0, 81, 170));
+	ballsColors.push_back(glm::vec3(85, 49, 61));
+	ballsColors.push_back(glm::vec3(38, 47, 104));
+
+	// 2
+	ballsColors.push_back(glm::vec3(43, 52, 131));
+	ballsColors.push_back(glm::vec3(84, 54, 66));
+	ballsColors.push_back(glm::vec3(0, 0, 0));
+	ballsColors.push_back(glm::vec3(254, 206, 46));
+
+	// 3
+	ballsColors.push_back(glm::vec3(229, 112, 69));
+	ballsColors.push_back(glm::vec3(250, 136, 74));
+	ballsColors.push_back(glm::vec3(238, 97, 90));
+
+	// 4
+	ballsColors.push_back(glm::vec3(33, 90, 83));
+	ballsColors.push_back(glm::vec3(205, 77, 76));
+
+	// 5
+	ballsColors.push_back(glm::vec3(1, 128, 107));
+
+	for (auto & ball : ballsColors)
+	{
+		ball = glm::vec3((float)ball.x / 256.0f, (float)ball.y / 256.0f, (float)ball.z / 256.0f);
 	}
 
+	float startX = 0, startY = 100, r = 10;
+	int k = 0;
+
+	for (int i = -8; i <= 0; i += 2)
+	{
+		int nriter = (i + 8) / 2;
+		for (int j = -4 + nriter; j <= 4 - nriter; j += 2)
+		{
+			balls.push_back(Ball(10.0f, 20, glm::vec2(startX + j * 1.3f * r, startY - i * 1.3f * r), ballsColors[k++]));
+		}
+	}
+	/*
 	for (int i = 0; i < 15; ++i)
 	{
-		balls.push_back(Ball(20.0f, 20, glm::vec3(rand() % 600 - 300, rand() % 800 - 400, 0.0f)));
+		balls.push_back(Ball(20.0f, 20, glm::vec2(rand() % 600 - 300, rand() % 800 - 400)));
 	}
+	*/
+	points = new float[4];
+	colors = new float[6];
 
-	points = new float[8];
-	colors = new float[8];
+	points[0];
 
-	points[2] = points[6] = 0.0f;
-	points[3] = points[7] = 1.0f;
+	colors[0] = colors[1] = colors[3] = colors[4] = 1.0f;
+	colors[2] = colors[5] = 0.0f;
 
-	colors[0] = colors[1] = colors[3] = colors[4] = colors[5] = colors[7] = 1.0f;
-	colors[2] = colors[6] = 0.0f;
+	currTime = timebase = glutGet(GLUT_ELAPSED_TIME);
 }
 
 void CreateVBO(void)
@@ -163,22 +211,22 @@ void CreateVBO(void)
 	// se creeaza un buffer nou se seteaza ca buffer curent si punctele sunt "copiate" in bufferul curent
 	glGenBuffers(1, &VboId);
 	glBindBuffer(GL_ARRAY_BUFFER, VboId);
-	glBufferData(GL_ARRAY_BUFFER, 16 * 2, points, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 8 * 2, points, GL_STATIC_DRAW);
 
 	// se creeaza / se leaga un VAO (Vertex Array Object) - util cand se utilizeaza mai multe VBO
 	glGenVertexArrays(1, &VaoId);
 	glBindVertexArray(VaoId);
 	// se activeaza lucrul cu atribute; atributul 0 = pozitie
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
 	// un nou buffer, pentru culoare
 	glGenBuffers(1, &ColorBufferId);
 	glBindBuffer(GL_ARRAY_BUFFER, ColorBufferId);
-	glBufferData(GL_ARRAY_BUFFER, 16 * 2, colors, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, 12 * 2, colors, GL_STATIC_DRAW);
 	// atributul 1 =  culoare
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
 
@@ -219,7 +267,6 @@ void Cleanup(void)
 
 void MousePassiveMotionFunction(int x, int y)
 {
-	
 	float x_coord, y_coord;
 
 	float xp = (float)x / (float)(WINDOW_WIDTH);
@@ -233,10 +280,9 @@ void MousePassiveMotionFunction(int x, int y)
 	points[0] = whiteBall.position.x;
 	points[1] = whiteBall.position.y;
 
-	points[4] = x_coord;
-	points[5] = y_coord;
+	points[2] = x_coord;
+	points[3] = y_coord;
 
-	
 	/*
 	lastMouseX = (float)x / (float)(2 * ORTHO_X);
 	lastMouseY = (float)(WINDOW_HEIGHT - y) / (float)(2 * ORTHO_X);
@@ -291,11 +337,13 @@ void MouseFunction(int button, int state, int x, int y)
 		if (state == GLUT_DOWN)
 		{
 			//balls.push_back(Ball(10, 10, glm::vec3(x_coord, y_coord, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f)));
-			glm::vec2 vel = glm::vec2(points[4] - points[0], points[5] - points[1]);
+			glm::vec2 vel = glm::vec2(points[2] - points[0], points[3] - points[1]);
+			float distFact = glm::length(vel) / 200.0f;
 			vel = glm::normalize(vel);
 
-			whiteBall.velocity = glm::vec3(vel.x, vel.y, 0.0f);
 
+			whiteBall.velocity = distFact * glm::vec2(vel.x, vel.y);
+			whiteBall.velocityEnergyInPercents = 1.0f;
 			//cout << vel.x << vel.y << '\n';
 			
 			//glutPostRedisplay();
@@ -383,7 +431,7 @@ void desen(void)
 	}
 
 	whiteBall.Draw();
-	testBall.Draw();
+	//testBall.Draw();
 
 	for (auto &ball : blackholes)
 	{
@@ -397,7 +445,7 @@ void desen(void)
 
 	CreateVBO();
 	glDrawArrays(GL_LINES, 0, 2);
-
+	currentFrameWasRendered = true;
 	/*
 	scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(2.0 / ORTHO_X, 2.0 / ORTHO_Y, 0));
 	glm::mat4 rotMatrix = glm::rotate(glm::mat4(1.0f), RotAngle, glm::vec3(0.0, 0.0, 1.0));
@@ -416,21 +464,25 @@ void desen(void)
 	//glDrawArrays(GL_LINES, 0, K);
 	//glPointSize(5.0f);
 	*/
-	glFlush();
-	
+	glutSwapBuffers();
 }
 
 void update()
 {
+	currTime = glutGet(GLUT_ELAPSED_TIME);
+	int deltatime = currTime - timebase;
+	if (deltatime < 17) // 60 fps
+	{
+		return;
+	}
+
+	timebase = currTime;
+
+	++updCounter;
+	//cout << updCounter << '\n';
+	
 	points[0] = whiteBall.position.x;
 	points[1] = whiteBall.position.y;
-
-	whiteBall.Update();
-	//testBall.Update();
-	for (auto & ball : balls)
-	{
-		ball.Update();
-	}
 
 	for (size_t b1 = 0; b1 < balls.size(); ++b1)
 	{
@@ -449,7 +501,7 @@ void update()
 	}
 
 	//
-	//whiteBall.SetPosition(glm::vec3(whiteBall.position.x + 0.1f * whiteBall.velocity.x, whiteBall.position.y += 0.1f * whiteBall.velocity.y, 0.0f));
+	//whiteBall.SetPosition(glm::vec3(whiteBall.position.x + 0.1f * whiteBall.velocity.x, whiteBall.position.y += 0.1f * whiteBall.velocity.y));
 	
 	//cout << whiteBall.position.x << ' ' << whiteBall.position.y << '\n';
 	/*
@@ -458,29 +510,29 @@ void update()
 		whiteBall.ComputeCollisionPhysics(testBall);
 		++nrColission;
 		cout << "collides " << nrColission << "!!!\n";
-	}*/
-
+	}
+	*/
 	if (whiteBall.position.x - whiteBall.radius <= -ORTHO_X / 2)
 	{
-		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec3(-1.0f, 1.0f, 0.0f));
+		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec2(-1.0f, 1.0f));
 		//cout << "achtung!!111";
 	}
 	else
 	if (whiteBall.position.y - whiteBall.radius <= -ORTHO_Y / 2)
 	{
-		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec3(1.0f, -1.0f, 0.0f));
+		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec2(1.0f, -1.0f));
 		//cout << "achtung!!222";
 	}
 	else
 	if (whiteBall.position.x + whiteBall.radius >= ORTHO_X / 2)
 	{
-		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec3(-1.0f, 1.0f, 0.0f));
+		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec2(-1.0f, 1.0f));
 		//cout << "achtung!!333";
 	}
 	else
 	if (whiteBall.position.y + whiteBall.radius >= ORTHO_Y / 2)
 	{
-		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec3(1.0f, -1.0f, 0.0f));
+		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec2(1.0f, -1.0f));
 		//cout << "achtung!!444";
 	}
 
@@ -488,36 +540,52 @@ void update()
 	{
 		if (ball.position.x - ball.radius <= -ORTHO_X / 2)
 		{
-			ball.ComputeSurfaceCollisionPhysics(glm::vec3(-1.0f, 1.0f, 0.0f));
+			ball.ComputeSurfaceCollisionPhysics(glm::vec2(-1.0f, 1.0f));
 			//cout << "achtung!!111";
 		}
 		else
 		if (ball.position.y - ball.radius <= -ORTHO_Y / 2)
 		{
-			ball.ComputeSurfaceCollisionPhysics(glm::vec3(1.0f, -1.0f, 0.0f));
+			ball.ComputeSurfaceCollisionPhysics(glm::vec2(1.0f, -1.0f));
 			//cout << "achtung!!222";
 		}
 		else
 		if (ball.position.x + ball.radius >= ORTHO_X / 2)
 		{
-			ball.ComputeSurfaceCollisionPhysics(glm::vec3(-1.0f, 1.0f, 0.0f));
+			ball.ComputeSurfaceCollisionPhysics(glm::vec2(-1.0f, 1.0f));
 			//cout << "achtung!!333";
 		}
 		else
 		if (ball.position.y + ball.radius >= ORTHO_Y / 2)
 		{
-			ball.ComputeSurfaceCollisionPhysics(glm::vec3(1.0f, -1.0f, 0.0f));
+			ball.ComputeSurfaceCollisionPhysics(glm::vec2(1.0f, -1.0f));
 			//cout << "achtung!!444";
 		}
 	}
+	
+	whiteBall.Update(deltatime);
+	//testBall.Update();
+	for (auto & ball : balls)
+	{
+		ball.Update(deltatime);
+	}
 
-	glutPostRedisplay();
+	if (! currentFrameWasRendered) 
+		glutPostRedisplay();
+
+	currentFrameWasRendered = false;
+}
+
+void reshapeFunc(int w, int h)
+{
+	WINDOW_WIDTH = w;
+	WINDOW_HEIGHT = h;
 }
 
 void main(int argc, char** argv)
 {
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowPosition(400, 25);
 	glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 	glutCreateWindow("Biliard 2D");
@@ -534,6 +602,7 @@ void main(int argc, char** argv)
 	glutPassiveMotionFunc(MousePassiveMotionFunction);
 	glutDisplayFunc(desen);
 	glutIdleFunc(update);
+	glutReshapeFunc(reshapeFunc);
 	glutMainLoop();
 
 	getchar();
