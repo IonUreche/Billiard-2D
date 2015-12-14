@@ -21,11 +21,14 @@ public:
 	float *colors;
 	float *relativePoints;
 
+	int id;
+	int lastCollisionId;
+
 	float velocityEnergyInPercents;
 
 	int bufferByteSize;
 
-	Ball(float _radius = 10, int _nrTriangles = 20, glm::vec2 _pos = glm::vec2(0.0f, 0.0f), glm::vec3 _color = glm::vec3(1.0f, 1.0f, 1.0f));
+	Ball(int id = 0, float _radius = 10, int _nrTriangles = 20, glm::vec2 _pos = glm::vec2(0.0f, 0.0f), glm::vec3 _color = glm::vec3(1.0f, 1.0f, 1.0f));
 	~Ball();
 
 	void Update(int deltaTime);

@@ -35,6 +35,8 @@ vector< Ball > blackholes;
 Ball whiteBall;
 Ball testBall;
 
+int ballCounter = 0;
+
 vector< glm::vec3 > ballsColors;
 
 float lastMouseX, lastMouseY;
@@ -138,13 +140,13 @@ void DestroyShaders(void)
 
 void InitScene()
 {
-	whiteBall = Ball(10.0f, 20, glm::vec2(0.0f, -200.0f));
+	whiteBall = Ball(++ballCounter, 10.0f, 20, glm::vec2(0.0f, -200.0f));
 
 	//testBall = Ball(10.0f, 20, glm::vec2(0.0f, 200.0f), glm::vec3(0.0f, 0.0f, 0.0f));
 
 	for (int i = 0; i < 6; ++i)
 	{
-		blackholes.push_back(Ball(30.0f, 20, glm::vec2((i/3) * 600.0f - 300.0f, (i%3 - 1) * 400.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
+		blackholes.push_back(Ball(++ballCounter, 30.0f, 20, glm::vec2((i / 3) * 600.0f - 300.0f, (i % 3 - 1) * 400.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
 	}
 	//1
 	ballsColors.push_back(glm::vec3(255, 204, 42));
@@ -184,7 +186,7 @@ void InitScene()
 		int nriter = (i + 8) / 2;
 		for (int j = -4 + nriter; j <= 4 - nriter; j += 2)
 		{
-			balls.push_back(Ball(10.0f, 20, glm::vec2(startX + j * 1.2f * r, startY - i * 1.2f * r), ballsColors[k++]));
+			balls.push_back(Ball(++ballCounter, 10.0f, 20, glm::vec2(startX + j * 1.2f * r, startY - i * 1.2f * r), ballsColors[k++]));
 		}
 	}
 	/*
@@ -341,6 +343,7 @@ void MouseFunction(int button, int state, int x, int y)
 
 			whiteBall.velocity = glm::vec2(vel.x, vel.y);
 			whiteBall.velocityEnergyInPercents = glm::min(fact, 1.0f);
+			whiteBall.lastCollisionId = -10;
 			//cout << vel.x << vel.y << '\n';
 			
 			//glutPostRedisplay();
@@ -486,7 +489,7 @@ void update()
 	for (size_t b1 = 0; b1 < balls.size(); ++b1)
 	{
 		for (size_t b2 = b1 + 1; b2 < balls.size(); ++b2)
-		if (b1 != b2)
+		if (b1 != b2 && (balls[b1].lastCollisionId != balls[b2].id || balls[b2].lastCollisionId != balls[b1].id))
 		{
 			if (balls[b1].collidesWith(balls[b2]))
 			{
@@ -500,7 +503,8 @@ void update()
 
 	for (auto & ball : balls)
 	{
-		if (ball.collidesWith(whiteBall))
+		if (ball.collidesWith(whiteBall) &&
+			(ball.lastCollisionId != whiteBall.id || whiteBall.lastCollisionId != ball.id))
 		{
 			ball.ComputeCollisionPhysics(whiteBall);
 			ball.Update(deltatime);
@@ -508,39 +512,96 @@ void update()
 		}
 	}
 
-	if (whiteBall.position.x - whiteBall.radius <= -ORTHO_X / 2 || 
-		whiteBall.position.x + whiteBall.radius >= ORTHO_X / 2)
+	if ((whiteBall.position.x - whiteBall.radius <= -ORTHO_X / 2 && whiteBall.lastCollisionId != -1) ||
+		(whiteBall.position.x + whiteBall.radius >= ORTHO_X / 2 && whiteBall.lastCollisionId != -2))
 	{
+		if (whiteBall.position.x - whiteBall.radius <= -ORTHO_X / 2)
+		{
+			whiteBall.lastCollisionId = -1;
+		}
+			
+		if (whiteBall.position.x + whiteBall.radius >= ORTHO_X / 2)
+		{
+			whiteBall.lastCollisionId = -2;
+		}
+			
 		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec2(-1.0f, 1.0f));
 		whiteBall.Update(deltatime);
 	}
 	else
-	if (whiteBall.position.y - whiteBall.radius <= -ORTHO_Y / 2 ||
-		whiteBall.position.y + whiteBall.radius >= ORTHO_Y / 2)
+	if ((whiteBall.position.y - whiteBall.radius <= -ORTHO_Y / 2 && whiteBall.lastCollisionId != -3) ||
+		(whiteBall.position.y + whiteBall.radius >= ORTHO_Y / 2 && whiteBall.lastCollisionId != -4))
 	{
+		if (whiteBall.position.y - whiteBall.radius <= -ORTHO_Y / 2)
+		{
+			whiteBall.lastCollisionId = -3;
+		}
+			
+		if (whiteBall.position.y + whiteBall.radius >= ORTHO_Y / 2)
+		{
+			whiteBall.lastCollisionId = -4;
+		}
+
 		whiteBall.ComputeSurfaceCollisionPhysics(glm::vec2(1.0f, -1.0f));
 		whiteBall.Update(deltatime);
 	}
 
 	for (auto & ball : balls)
 	{
-		if (ball.position.x - ball.radius <= -ORTHO_X / 2 ||
-			ball.position.x + ball.radius >= ORTHO_X / 2)
+		if ((ball.position.x - ball.radius <= -ORTHO_X / 2 && ball.lastCollisionId != -1) ||
+			(ball.position.x + ball.radius >= ORTHO_X / 2 && ball.lastCollisionId != -2))
 		{
+			if (ball.position.x - ball.radius <= -ORTHO_X / 2)
+			{
+				ball.lastCollisionId = -1;
+			}
+
+			if (ball.position.x + ball.radius >= ORTHO_X / 2)
+			{
+				//ball.lastCollisionId = -2;
+			}
+
 			ball.ComputeSurfaceCollisionPhysics(glm::vec2(-1.0f, 1.0f));
 			ball.Update(deltatime);
 		}
 		else
-		if (ball.position.y - ball.radius <= -ORTHO_Y / 2 ||
-			ball.position.y + ball.radius >= ORTHO_Y / 2)
+		if ((ball.position.y - ball.radius <= -ORTHO_Y / 2 && ball.lastCollisionId != -3) ||
+			(ball.position.y + ball.radius >= ORTHO_Y / 2 && ball.lastCollisionId != -4))
 		{
+			if (ball.position.y - ball.radius <= -ORTHO_Y / 2)
+			{
+				ball.lastCollisionId = -3;
+			}
+
+			if (ball.position.y + ball.radius >= ORTHO_Y / 2)
+			{
+				ball.lastCollisionId = -4;
+			}
 			ball.ComputeSurfaceCollisionPhysics(glm::vec2(1.0f, -1.0f));
 			ball.Update(deltatime);
 		}
 	}
 	
 	whiteBall.Update(deltatime);
-	
+
+	// Check for collision with black holes
+	for (auto & b : blackholes)
+	{
+		for (int i = 0; i < balls.size(); ++i)
+		if (b.collidesWith(balls[i]))
+		{
+			balls.erase(balls.begin() + i);
+			--i;
+		}
+
+		if (b.collidesWith(whiteBall))
+		{
+			whiteBall.position = glm::vec2(0.0f, -200.0f);
+			whiteBall.velocity = glm::vec2(0.0f, 0.0f);
+			whiteBall.velocityEnergyInPercents = 0.0f;
+		}
+	}
+
 	for (auto & ball : balls)
 	{
 		ball.Update(deltatime);
@@ -551,6 +612,8 @@ void update()
 		glutPostRedisplay();
 		lastRenderTime = currTime;
 	}
+
+	
 }
 
 void reshapeFunc(int w, int h)

@@ -1,14 +1,16 @@
 #include "Ball.h"
 #include <algorithm>
 
-Ball::Ball(float _radius, int _nrTriangles, glm::vec2 _pos, glm::vec3 _color)
+Ball::Ball(int _id, float _radius, int _nrTriangles, glm::vec2 _pos, glm::vec3 _color)
 {
+	id = _id;
 	nrTriangles = _nrTriangles;
 	radius = _radius;
 	color = _color;
 	position = _pos;
 	BuildCircle();
 	velocityEnergyInPercents = 1.0f;
+	lastCollisionId = -10;
 }
 
 
@@ -80,6 +82,7 @@ void Ball::Update(int deltaTime)
 	if (velocityEnergyInPercents <= 1e-7)
 	{
 		velocity.x = velocity.y = 0;
+		lastCollisionId = -10;
 	}
 }
 
@@ -160,6 +163,9 @@ void Ball::ComputeCollisionPhysics(Ball & ball)
 
 	ball.velocityEnergyInPercents = ball.velocityEnergyInPercents * 0.47f + velocityEnergyInPercents * 0.47f;
 	//ball.velocityEnergyInPercents = std::max(ball.velocityEnergyInPercents - 0.01f, 0.0f);
+
+	lastCollisionId = ball.id;
+	ball.lastCollisionId = id;
 }
 
 void Ball::ComputeSurfaceCollisionPhysics(glm::vec2 normal)
@@ -169,6 +175,7 @@ void Ball::ComputeSurfaceCollisionPhysics(glm::vec2 normal)
 	//glm::vec3 nd = glm::normalize(d);
 	//float k = glm::dot(velocity - normal, d);
 	//glm::vec3 v1p = velocity - k * nd;
+
 	velocity = glm::vec2(velocity.x * normal.x, velocity.y * normal.y);
 	velocityEnergyInPercents = std::max(velocityEnergyInPercents - 0.03f, 0.0f);
 }
