@@ -186,7 +186,7 @@ void InitScene()
 		int nriter = (i + 8) / 2;
 		for (int j = -4 + nriter; j <= 4 - nriter; j += 2)
 		{
-			balls.push_back(Ball(++ballCounter, 10.0f, 20, glm::vec2(startX + j * 1.2f * r, startY - i * 1.2f * r), ballsColors[k++]));
+			balls.push_back(Ball(++ballCounter, 10.0f, 20, glm::vec2(startX + j * 1.05f * r, startY - i * 1.05f * r), ballsColors[k++]));
 		}
 	}
 	/*
@@ -612,8 +612,6 @@ void update()
 		glutPostRedisplay();
 		lastRenderTime = currTime;
 	}
-
-	
 }
 
 void reshapeFunc(int w, int h)
